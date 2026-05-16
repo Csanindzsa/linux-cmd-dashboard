@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Linux Command Dashboard
+Comment=Terminal tiles dashboard for Linux commands
+Exec=linux-cmd-dashboard
+Icon=dev.codex.LinuxCmdDashboard
+Type=Application
+Categories=System;TerminalEmulator;
+Terminal=false
+StartupNotify=true
