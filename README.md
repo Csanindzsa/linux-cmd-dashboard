@@ -22,6 +22,8 @@ pane should own that session.
   - overview dialog
 - Per-pane metadata for title, cwd, process status, and accent color
 - TOML settings at `~/.config/linux-cmd-dashboard/config.toml`
+- Missing settings fields fall back to built-in defaults, so new versions can
+  add keys without breaking older config files.
 
 ## Shortcuts
 

@@ -46,7 +46,7 @@ pub fn run() {
 }
 
 fn build_ui(app: &adw::Application) {
-    let config = TerminalConfig::load();
+    let config = TerminalConfig::load_or_create();
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("Terminal Tiles")
@@ -169,7 +169,7 @@ fn install_actions(app: &adw::Application, state: &Rc<RefCell<UiState>>) {
     let config = &state.borrow().config.keybindings;
     app.set_accels_for_action("app.new-pane", &[&config.new_pane]);
     app.set_accels_for_action("app.close-pane", &[&config.close_pane]);
-    app.set_accels_for_action("app.restart-pane", &["<Ctrl><Shift>r"]);
+    app.set_accels_for_action("app.restart-pane", &[&config.restart_pane]);
     app.set_accels_for_action("app.focus-left", &[&config.focus_left]);
     app.set_accels_for_action("app.focus-down", &[&config.focus_down]);
     app.set_accels_for_action("app.focus-up", &[&config.focus_up]);

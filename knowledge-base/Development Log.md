@@ -26,6 +26,8 @@
 - Wired GTK paned position changes back into the workspace layout.
 - Added focused-pane restart action and `Ctrl+Shift+R` shortcut.
 - Added a unit test for nested split-ratio updates.
+- Made settings deserialization tolerate missing fields.
+- Added configurable restart shortcut and first-launch config file creation.
 
 ## Known Local Environment Gap
 
