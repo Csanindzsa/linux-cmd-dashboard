@@ -81,15 +81,15 @@ impl Default for TerminalConfig {
 impl Default for Theme {
     fn default() -> Self {
         Self {
-            source: ThemeSource::Alacritty,
+            source: ThemeSource::Custom,
             alacritty_config: None,
-            foreground: "#d8dee9".to_string(),
-            background: "#2B3546".to_string(),
-            titlebar_background: "#202326".to_string(),
-            cursor: "#f2f4f8".to_string(),
-            accent: "#4cc9f0".to_string(),
+            foreground: "#6D8096".to_string(),
+            background: "#282a36".to_string(),
+            titlebar_background: "#191a21".to_string(),
+            cursor: "#f8f8f2".to_string(),
+            accent: "#8be9fd".to_string(),
             transparent_background: true,
-            background_opacity: 0.8,
+            background_opacity: 0.85,
         }
     }
 }
@@ -171,11 +171,11 @@ impl TerminalConfig {
             ThemeSource::System => {
                 let mut theme = self.theme.custom_effective(Some(system_is_dark));
                 if system_is_dark {
-                    theme.foreground = "#f2f4f8".to_string();
-                    theme.background = "#1e1e1e".to_string();
-                    theme.titlebar_background = "#202326".to_string();
-                    theme.cursor = "#f2f4f8".to_string();
-                    theme.accent = "#62a0ea".to_string();
+                    theme.foreground = "#6D8096".to_string();
+                    theme.background = "#282a36".to_string();
+                    theme.titlebar_background = "#191a21".to_string();
+                    theme.cursor = "#f8f8f2".to_string();
+                    theme.accent = "#8be9fd".to_string();
                 } else {
                     theme.foreground = "#1f2937".to_string();
                     theme.background = "#fafafa".to_string();
