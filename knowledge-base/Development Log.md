@@ -29,6 +29,13 @@
 - Made settings deserialization tolerate missing fields.
 - Added configurable restart shortcut and first-launch config file creation.
 
+## After VTE Installation
+
+- Confirmed `vte-2.91-gtk4` is available through pkg-config at version `0.84.0`.
+- Confirmed the full GUI build path reaches Rust compilation successfully.
+- Cleaned up full-build warnings from deprecated CSS loading, unused mutability,
+  and unread pane metadata fields.
+
 ## Known Local Environment Gap
 
 Full GUI checks are blocked until a package providing `vte-2.91-gtk4.pc` is

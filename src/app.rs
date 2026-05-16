@@ -80,7 +80,7 @@ fn build_ui(app: &adw::Application) {
     toolbar.set_content(Some(&content));
     window.set_content(Some(&toolbar));
 
-    let mut workspace = Workspace::new();
+    let workspace = Workspace::new();
     let first_id = workspace.focused();
     let first_pane = create_pane(first_id, inherited_cwd(None), &config);
 
@@ -297,7 +297,7 @@ fn show_overview(state: &Rc<RefCell<UiState>>) {
             continue;
         };
         let row = adw::ActionRow::builder()
-            .title(format!("{} - pane {}", pane.title, id.0))
+            .title(format!("{} - pane {}", pane.title, pane.id.0))
             .subtitle(format!(
                 "{} - {}",
                 status_label(pane.status),
@@ -422,6 +422,10 @@ fn render_leaf(state: &Rc<RefCell<UiState>>, id: PaneId) -> gtk::Widget {
         pane.title,
         status_label(pane.status),
         pane.cwd.display()
+    )));
+    title.set_tooltip_text(Some(&format!(
+        "Pane {} - accent {}",
+        pane.id.0, pane.accent
     )));
     title.set_xalign(0.0);
     title.add_css_class("pane-title");
@@ -554,7 +558,7 @@ fn status_label(status: PaneStatus) -> String {
 
 fn install_css() {
     let provider = gtk::CssProvider::new();
-    provider.load_from_data(
+    provider.load_from_string(
         "
         window {
             background: #0f1117;
