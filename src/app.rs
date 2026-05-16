@@ -553,7 +553,7 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
 }
 
 fn apply_terminal_theme(terminal: &vte::Terminal, theme: &EffectiveTheme) {
-    terminal.set_clear_background(theme.transparent_background);
+    terminal.set_clear_background(false);
     if let Ok(color) = gdk::RGBA::parse(&theme.foreground) {
         terminal.set_color_foreground(&color);
     }
@@ -614,8 +614,6 @@ fn install_css(theme: &EffectiveTheme) {
         .unwrap_or_else(|| "rgba(15, 17, 23, 0.78)".to_string());
     let pane_background =
         css_rgba(&theme.background, 0.86).unwrap_or_else(|| "rgba(25, 29, 36, 0.86)".to_string());
-    let title_background = css_rgba(&theme.background, theme.background_opacity)
-        .unwrap_or_else(|| "rgba(17, 19, 24, 0.8)".to_string());
     let border = css_rgba(&theme.foreground, 0.18).unwrap_or_else(|| "#252a33".to_string());
     let foreground = &theme.foreground;
     let accent = &theme.accent;
@@ -634,7 +632,7 @@ fn install_css(theme: &EffectiveTheme) {
             border-color: {accent};
         }}
         .pane-title {{
-            background: {title_background};
+            background: transparent;
             color: {foreground};
             padding: 5px 8px;
             font-size: 12px;
