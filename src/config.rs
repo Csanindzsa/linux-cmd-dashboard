@@ -20,6 +20,7 @@ pub struct Theme {
     pub alacritty_config: Option<String>,
     pub foreground: String,
     pub background: String,
+    pub titlebar_background: String,
     pub cursor: String,
     pub accent: String,
     pub transparent_background: bool,
@@ -38,6 +39,7 @@ pub enum ThemeSource {
 pub struct EffectiveTheme {
     pub foreground: String,
     pub background: String,
+    pub titlebar_background: String,
     pub cursor: String,
     pub accent: String,
     pub transparent_background: bool,
@@ -82,7 +84,8 @@ impl Default for Theme {
             source: ThemeSource::Alacritty,
             alacritty_config: None,
             foreground: "#d8dee9".to_string(),
-            background: "#111318".to_string(),
+            background: "#2B3546".to_string(),
+            titlebar_background: "#202326".to_string(),
             cursor: "#f2f4f8".to_string(),
             accent: "#4cc9f0".to_string(),
             transparent_background: true,
@@ -170,11 +173,13 @@ impl TerminalConfig {
                 if system_is_dark {
                     theme.foreground = "#f2f4f8".to_string();
                     theme.background = "#1e1e1e".to_string();
+                    theme.titlebar_background = "#202326".to_string();
                     theme.cursor = "#f2f4f8".to_string();
                     theme.accent = "#62a0ea".to_string();
                 } else {
                     theme.foreground = "#1f2937".to_string();
                     theme.background = "#fafafa".to_string();
+                    theme.titlebar_background = "#e5e7eb".to_string();
                     theme.cursor = "#111827".to_string();
                     theme.accent = "#1c71d8".to_string();
                 }
@@ -204,6 +209,7 @@ impl Theme {
         EffectiveTheme {
             foreground: self.foreground.clone(),
             background: self.background.clone(),
+            titlebar_background: self.titlebar_background.clone(),
             cursor: self.cursor.clone(),
             accent: self.accent.clone(),
             transparent_background: self.transparent_background,
@@ -266,7 +272,8 @@ pub fn parse_alacritty_theme(raw: &str) -> Option<EffectiveTheme> {
 
     Some(EffectiveTheme {
         foreground,
-        background,
+        background: background.clone(),
+        titlebar_background: background,
         cursor,
         accent,
         transparent_background: background_opacity < 1.0,

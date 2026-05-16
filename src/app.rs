@@ -615,7 +615,7 @@ fn install_css(theme: &EffectiveTheme) {
     let pane_background = css_rgba(&theme.background, theme.background_opacity)
         .unwrap_or_else(|| "rgba(17, 19, 24, 0.8)".to_string());
     let title_background =
-        css_rgba(&theme.background, 0.86).unwrap_or_else(|| "rgba(25, 29, 36, 0.86)".to_string());
+        css_rgba(&theme.titlebar_background, 1.0).unwrap_or_else(|| "#202326".to_string());
     let border = css_rgba(&theme.foreground, 0.18).unwrap_or_else(|| "#252a33".to_string());
     let foreground = &theme.foreground;
     let accent = &theme.accent;
