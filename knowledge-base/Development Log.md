@@ -42,6 +42,9 @@
   focus-enter signal from `grab_focus()`.
 - Made terminal signal handlers avoid panicking on re-entrant GTK callbacks by
   using `try_borrow_mut()`.
+- Set the app's dark preference through `AdwStyleManager`. A startup warning can
+  still appear if the desktop/session sets GTK's unsupported
+  `gtk-application-prefer-dark-theme` setting globally.
 
 ## Known Local Environment Gap
 

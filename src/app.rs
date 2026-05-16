@@ -39,6 +39,7 @@ pub fn run() {
 
     app.connect_startup(|_| {
         adw::init().expect("libadwaita initialization failed");
+        adw::StyleManager::default().set_color_scheme(adw::ColorScheme::PreferDark);
         install_css();
     });
     app.connect_activate(build_ui);
