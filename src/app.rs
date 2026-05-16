@@ -553,13 +553,13 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
 }
 
 fn apply_terminal_theme(terminal: &vte::Terminal, theme: &EffectiveTheme) {
-    terminal.set_clear_background(false);
+    terminal.set_clear_background(theme.transparent_background);
     if let Ok(color) = gdk::RGBA::parse(&theme.foreground) {
         terminal.set_color_foreground(&color);
     }
     if let Ok(color) = gdk::RGBA::parse(&theme.background) {
         let color = color.with_alpha(if theme.transparent_background {
-            0.86
+            theme.background_opacity
         } else {
             1.0
         });
@@ -612,7 +612,9 @@ fn install_css(theme: &EffectiveTheme) {
     let provider = gtk::CssProvider::new();
     let window_background = css_rgba(&theme.background, theme.background_opacity * 0.72)
         .unwrap_or_else(|| "rgba(15, 17, 23, 0.78)".to_string());
-    let pane_background =
+    let pane_background = css_rgba(&theme.background, theme.background_opacity)
+        .unwrap_or_else(|| "rgba(17, 19, 24, 0.8)".to_string());
+    let title_background =
         css_rgba(&theme.background, 0.86).unwrap_or_else(|| "rgba(25, 29, 36, 0.86)".to_string());
     let border = css_rgba(&theme.foreground, 0.18).unwrap_or_else(|| "#252a33".to_string());
     let foreground = &theme.foreground;
@@ -632,7 +634,7 @@ fn install_css(theme: &EffectiveTheme) {
             border-color: {accent};
         }}
         .pane-title {{
-            background: transparent;
+            background: {title_background};
             color: {foreground};
             padding: 5px 8px;
             font-size: 12px;
