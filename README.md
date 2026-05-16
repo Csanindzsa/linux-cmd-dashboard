@@ -29,6 +29,7 @@ pane should own that session.
 | --- | --- |
 | New pane | `Ctrl+Shift+Enter` |
 | Close pane | `Ctrl+Shift+W` |
+| Restart pane | `Ctrl+Shift+R` |
 | Focus left/down/up/right | `Ctrl+Shift+H/J/K/L` |
 | Move left/down/up/right | `Ctrl+Shift+Alt+H/J/K/L` |
 | Fullscreen focused pane | `Ctrl+Shift+F` |

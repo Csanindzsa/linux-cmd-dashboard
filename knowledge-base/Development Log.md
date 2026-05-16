@@ -11,6 +11,21 @@
   VTE terminal spawning, fullscreen mode, and pane overview.
 - Added README build instructions and shortcut reference.
 - Verified core tests with `cargo test --no-default-features --lib`.
+- Committed the initial scaffold and Obsidian vault as `a3166e6`.
+
+## Next Development Step
+
+- Persist user-adjusted split ratios from GTK paned drag handles back into the
+  layout tree.
+- Add a restart action for the focused pane so exited shells can be relaunched
+  without closing and recreating the pane.
+
+## Continued After Initial Commit
+
+- Added layout support for updating nested split ratios by path.
+- Wired GTK paned position changes back into the workspace layout.
+- Added focused-pane restart action and `Ctrl+Shift+R` shortcut.
+- Added a unit test for nested split-ratio updates.
 
 ## Known Local Environment Gap
 

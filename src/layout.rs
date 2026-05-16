@@ -156,6 +156,10 @@ impl Workspace {
         self.root.resize_path_to(self.focused, direction, delta)
     }
 
+    pub fn set_split_ratio(&mut self, path: &[bool], ratio: f64) -> bool {
+        self.root.set_split_ratio(path, ratio)
+    }
+
     pub fn rectangles(&self) -> HashMap<PaneId, Rect> {
         let mut rects = HashMap::new();
         self.root.collect_rects(
@@ -433,6 +437,23 @@ impl LayoutTree {
             },
         }
     }
+
+    fn set_split_ratio(&mut self, path: &[bool], ratio: f64) -> bool {
+        match (self, path.split_first()) {
+            (LayoutTree::Split { ratio: current, .. }, None) => {
+                *current = ratio.clamp(0.15, 0.85);
+                true
+            }
+            (LayoutTree::Split { first, second, .. }, Some((go_second, rest))) => {
+                if *go_second {
+                    second.set_split_ratio(rest, ratio)
+                } else {
+                    first.set_split_ratio(rest, ratio)
+                }
+            }
+            (LayoutTree::Leaf(_), _) => false,
+        }
+    }
 }
 
 fn axis_overlap(a0: f64, a1: f64, b0: f64, b1: f64) -> f64 {
@@ -510,6 +531,24 @@ mod tests {
         match workspace.root() {
             LayoutTree::Split { ratio, .. } => assert!((*ratio - 0.6).abs() < f64::EPSILON),
             other => panic!("expected split, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn set_split_ratio_updates_nested_split_by_path() {
+        let mut workspace = Workspace::new();
+        workspace.split_focused(SplitOrientation::Horizontal);
+        workspace.focus(PaneId(1));
+        workspace.split_focused(SplitOrientation::Vertical);
+
+        assert!(workspace.set_split_ratio(&[false], 0.7));
+
+        match workspace.root() {
+            LayoutTree::Split { first, .. } => match first.as_ref() {
+                LayoutTree::Split { ratio, .. } => assert!((*ratio - 0.7).abs() < f64::EPSILON),
+                other => panic!("expected nested split, got {other:?}"),
+            },
+            other => panic!("expected root split, got {other:?}"),
         }
     }
 }

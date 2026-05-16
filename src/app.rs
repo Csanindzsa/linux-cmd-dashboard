@@ -64,6 +64,8 @@ fn build_ui(app: &adw::Application) {
     split_v.set_tooltip_text(Some("Split down"));
     let close = gtk::Button::from_icon_name("window-close-symbolic");
     close.set_tooltip_text(Some("Close pane"));
+    let restart = gtk::Button::from_icon_name("view-refresh-symbolic");
+    restart.set_tooltip_text(Some("Restart pane"));
     let overview = gtk::Button::from_icon_name("view-list-symbolic");
     overview.set_tooltip_text(Some("Overview"));
 
@@ -71,6 +73,7 @@ fn build_ui(app: &adw::Application) {
     header.pack_start(&split_v);
     header.pack_end(&overview);
     header.pack_end(&close);
+    header.pack_end(&restart);
     toolbar.add_top_bar(&header);
 
     let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -107,6 +110,10 @@ fn build_ui(app: &adw::Application) {
     }
     {
         let state = state.clone();
+        restart.connect_clicked(move |_| restart_current(&state));
+    }
+    {
+        let state = state.clone();
         overview.connect_clicked(move |_| show_overview(&state));
     }
 
@@ -119,6 +126,7 @@ fn install_actions(app: &adw::Application, state: &Rc<RefCell<UiState>>) {
         split_current(state, Direction::Right)
     });
     add_action(app, "close-pane", state, close_current);
+    add_action(app, "restart-pane", state, restart_current);
     add_action(app, "focus-left", state, |state| {
         focus_neighbor(state, Direction::Left)
     });
@@ -161,6 +169,7 @@ fn install_actions(app: &adw::Application, state: &Rc<RefCell<UiState>>) {
     let config = &state.borrow().config.keybindings;
     app.set_accels_for_action("app.new-pane", &[&config.new_pane]);
     app.set_accels_for_action("app.close-pane", &[&config.close_pane]);
+    app.set_accels_for_action("app.restart-pane", &["<Ctrl><Shift>r"]);
     app.set_accels_for_action("app.focus-left", &[&config.focus_left]);
     app.set_accels_for_action("app.focus-down", &[&config.focus_down]);
     app.set_accels_for_action("app.focus-up", &[&config.focus_up]);
@@ -216,6 +225,23 @@ fn close_current(state: &Rc<RefCell<UiState>>) {
         state.borrow_mut().panes.remove(&id);
         render(state);
     }
+}
+
+fn restart_current(state: &Rc<RefCell<UiState>>) {
+    let (id, cwd, config) = {
+        let state_ref = state.borrow();
+        let id = state_ref.workspace.focused();
+        let Some(pane) = state_ref.panes.get(&id) else {
+            return;
+        };
+        let cwd = current_terminal_cwd(pane).unwrap_or_else(|| pane.cwd.clone());
+        (id, cwd, state_ref.config.clone())
+    };
+
+    let pane = create_pane(id, cwd, &config);
+    state.borrow_mut().panes.insert(id, pane);
+    connect_pane_signals(state, id);
+    render(state);
 }
 
 fn focus_neighbor(state: &Rc<RefCell<UiState>>, direction: Direction) {
@@ -306,7 +332,7 @@ fn render(state: &Rc<RefCell<UiState>>) {
     let widget = if fullscreen {
         render_leaf(state, focused)
     } else {
-        render_node(state, &root)
+        render_node(state, &root, Vec::new())
     };
 
     content.append(&widget);
@@ -316,7 +342,7 @@ fn render(state: &Rc<RefCell<UiState>>) {
     }
 }
 
-fn render_node(state: &Rc<RefCell<UiState>>, node: &LayoutTree) -> gtk::Widget {
+fn render_node(state: &Rc<RefCell<UiState>>, node: &LayoutTree, path: Vec<bool>) -> gtk::Widget {
     match node {
         LayoutTree::Leaf(id) => render_leaf(state, *id),
         LayoutTree::Split {
@@ -330,8 +356,12 @@ fn render_node(state: &Rc<RefCell<UiState>>, node: &LayoutTree) -> gtk::Widget {
                 SplitOrientation::Vertical => gtk::Orientation::Vertical,
             });
             paned.set_wide_handle(true);
-            paned.set_start_child(Some(&render_node(state, first)));
-            paned.set_end_child(Some(&render_node(state, second)));
+            let mut first_path = path.clone();
+            first_path.push(false);
+            let mut second_path = path.clone();
+            second_path.push(true);
+            paned.set_start_child(Some(&render_node(state, first, first_path)));
+            paned.set_end_child(Some(&render_node(state, second, second_path)));
             paned.connect_map({
                 let ratio = *ratio;
                 move |paned| {
@@ -342,6 +372,20 @@ fn render_node(state: &Rc<RefCell<UiState>>, node: &LayoutTree) -> gtk::Widget {
                     };
                     if size > 0 {
                         paned.set_position((f64::from(size) * ratio).round() as i32);
+                    }
+                }
+            });
+            paned.connect_position_notify({
+                let state = state.clone();
+                move |paned| {
+                    let size = if paned.orientation() == gtk::Orientation::Horizontal {
+                        paned.width()
+                    } else {
+                        paned.height()
+                    };
+                    if size > 0 {
+                        let ratio = f64::from(paned.position()) / f64::from(size);
+                        state.borrow_mut().workspace.set_split_ratio(&path, ratio);
                     }
                 }
             });

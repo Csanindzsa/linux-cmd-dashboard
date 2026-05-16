@@ -11,6 +11,7 @@ cargo check --no-default-features
 ## Current Result
 
 - Core layout/config tests pass.
+- Core tests now cover nested split-ratio persistence.
 - GUI build is blocked in the current environment because `pkg-config` cannot
   find `vte-2.91-gtk4`.
 
