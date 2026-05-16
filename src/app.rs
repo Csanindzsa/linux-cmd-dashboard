@@ -1,5 +1,5 @@
 use crate::{
-    config::TerminalConfig,
+    config::{EffectiveTheme, TerminalConfig},
     layout::{Direction, LayoutTree, PaneId, SplitOrientation, Workspace},
 };
 use adw::prelude::*;
@@ -29,6 +29,7 @@ struct UiState {
     workspace: Workspace,
     panes: HashMap<PaneId, Pane>,
     config: TerminalConfig,
+    theme: EffectiveTheme,
     content: gtk::Box,
     window: adw::ApplicationWindow,
     fullscreen: bool,
@@ -39,8 +40,6 @@ pub fn run() {
 
     app.connect_startup(|_| {
         adw::init().expect("libadwaita initialization failed");
-        adw::StyleManager::default().set_color_scheme(adw::ColorScheme::PreferDark);
-        install_css();
     });
     app.connect_activate(build_ui);
     app.run();
@@ -48,16 +47,28 @@ pub fn run() {
 
 fn build_ui(app: &adw::Application) {
     let config = TerminalConfig::load_or_create();
+    let style_manager = adw::StyleManager::default();
+    let theme = config.effective_theme(style_manager.is_dark());
+    configure_style_manager(&theme);
+    install_icon_theme();
+    install_css(&theme);
+
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("Terminal Tiles")
+        .icon_name(APP_ID)
         .default_width(1320)
         .default_height(860)
         .build();
 
     let toolbar = adw::ToolbarView::new();
     let header = adw::HeaderBar::new();
-    header.set_title_widget(Some(&gtk::Label::new(Some("Terminal Tiles"))));
+    let title_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    let logo = gtk::Image::from_icon_name(APP_ID);
+    logo.set_pixel_size(22);
+    title_box.append(&logo);
+    title_box.append(&gtk::Label::new(Some("Terminal Tiles")));
+    header.set_title_widget(Some(&title_box));
 
     let split_h = gtk::Button::from_icon_name("view-dual-symbolic");
     split_h.set_tooltip_text(Some("Split right"));
@@ -83,12 +94,13 @@ fn build_ui(app: &adw::Application) {
 
     let workspace = Workspace::new();
     let first_id = workspace.focused();
-    let first_pane = create_pane(first_id, inherited_cwd(None), &config);
+    let first_pane = create_pane(first_id, inherited_cwd(None), &config, &theme);
 
     let state = Rc::new(RefCell::new(UiState {
         workspace,
         panes: HashMap::from([(first_id, first_pane)]),
         config,
+        theme,
         content,
         window: window.clone(),
         fullscreen: false,
@@ -198,7 +210,7 @@ fn add_action(
 }
 
 fn split_current(state: &Rc<RefCell<UiState>>, direction: Direction) {
-    let (id, cwd, config) = {
+    let (id, cwd, config, theme) = {
         let mut state = state.borrow_mut();
         let old_focus = state.workspace.focused();
         let cwd = if state.config.inherit_focused_cwd {
@@ -211,10 +223,10 @@ fn split_current(state: &Rc<RefCell<UiState>>, direction: Direction) {
             inherited_cwd(None)
         };
         let id = state.workspace.split_focused_toward(direction);
-        (id, cwd, state.config.clone())
+        (id, cwd, state.config.clone(), state.theme.clone())
     };
 
-    let pane = create_pane(id, cwd, &config);
+    let pane = create_pane(id, cwd, &config, &theme);
     state.borrow_mut().panes.insert(id, pane);
     connect_pane_signals(state, id);
     render(state);
@@ -229,17 +241,17 @@ fn close_current(state: &Rc<RefCell<UiState>>) {
 }
 
 fn restart_current(state: &Rc<RefCell<UiState>>) {
-    let (id, cwd, config) = {
+    let (id, cwd, config, theme) = {
         let state_ref = state.borrow();
         let id = state_ref.workspace.focused();
         let Some(pane) = state_ref.panes.get(&id) else {
             return;
         };
         let cwd = current_terminal_cwd(pane).unwrap_or_else(|| pane.cwd.clone());
-        (id, cwd, state_ref.config.clone())
+        (id, cwd, state_ref.config.clone(), state_ref.theme.clone())
     };
 
-    let pane = create_pane(id, cwd, &config);
+    let pane = create_pane(id, cwd, &config, &theme);
     state.borrow_mut().panes.insert(id, pane);
     connect_pane_signals(state, id);
     render(state);
@@ -451,13 +463,13 @@ fn render_leaf(state: &Rc<RefCell<UiState>>, id: PaneId) -> gtk::Widget {
     frame.upcast()
 }
 
-fn create_pane(id: PaneId, cwd: PathBuf, config: &TerminalConfig) -> Pane {
+fn create_pane(id: PaneId, cwd: PathBuf, config: &TerminalConfig, theme: &EffectiveTheme) -> Pane {
     let terminal = vte::Terminal::new();
     terminal.set_scrollback_lines(config.scrollback_lines);
     terminal.set_font(Some(&gtk::pango::FontDescription::from_string(
         &config.font,
     )));
-    apply_terminal_theme(&terminal, config);
+    apply_terminal_theme(&terminal, theme);
     terminal.set_hexpand(true);
     terminal.set_vexpand(true);
 
@@ -485,7 +497,7 @@ fn create_pane(id: PaneId, cwd: PathBuf, config: &TerminalConfig) -> Pane {
         cwd,
         status: PaneStatus::Running,
         terminal,
-        accent: config.theme.accent.clone(),
+        accent: theme.accent.clone(),
     }
 }
 
@@ -540,14 +552,20 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
     }
 }
 
-fn apply_terminal_theme(terminal: &vte::Terminal, config: &TerminalConfig) {
-    if let Ok(color) = gdk::RGBA::parse(&config.theme.foreground) {
+fn apply_terminal_theme(terminal: &vte::Terminal, theme: &EffectiveTheme) {
+    terminal.set_clear_background(theme.transparent_background);
+    if let Ok(color) = gdk::RGBA::parse(&theme.foreground) {
         terminal.set_color_foreground(&color);
     }
-    if let Ok(color) = gdk::RGBA::parse(&config.theme.background) {
+    if let Ok(color) = gdk::RGBA::parse(&theme.background) {
+        let color = color.with_alpha(if theme.transparent_background {
+            0.86
+        } else {
+            1.0
+        });
         terminal.set_color_background(&color);
     }
-    if let Ok(color) = gdk::RGBA::parse(&config.theme.cursor) {
+    if let Ok(color) = gdk::RGBA::parse(&theme.cursor) {
         terminal.set_color_cursor(Some(&color));
     }
 }
@@ -572,39 +590,77 @@ fn status_label(status: PaneStatus) -> String {
     }
 }
 
-fn install_css() {
+fn configure_style_manager(theme: &EffectiveTheme) {
+    let scheme = match theme.prefer_dark {
+        Some(true) => adw::ColorScheme::PreferDark,
+        Some(false) => adw::ColorScheme::PreferLight,
+        None => adw::ColorScheme::Default,
+    };
+    adw::StyleManager::default().set_color_scheme(scheme);
+}
+
+fn install_icon_theme() {
+    let Some(display) = gdk::Display::default() else {
+        return;
+    };
+    let icon_theme = gtk::IconTheme::for_display(&display);
+    icon_theme.add_search_path(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/icons"));
+    gtk::Window::set_default_icon_name(APP_ID);
+}
+
+fn install_css(theme: &EffectiveTheme) {
     let provider = gtk::CssProvider::new();
-    provider.load_from_string(
+    let window_background = css_rgba(&theme.background, theme.background_opacity * 0.72)
+        .unwrap_or_else(|| "rgba(15, 17, 23, 0.78)".to_string());
+    let pane_background =
+        css_rgba(&theme.background, 0.86).unwrap_or_else(|| "rgba(25, 29, 36, 0.86)".to_string());
+    let title_background = css_rgba(&theme.background, theme.background_opacity)
+        .unwrap_or_else(|| "rgba(17, 19, 24, 0.8)".to_string());
+    let border = css_rgba(&theme.foreground, 0.18).unwrap_or_else(|| "#252a33".to_string());
+    let foreground = &theme.foreground;
+    let accent = &theme.accent;
+    provider.load_from_string(&format!(
         "
-        window {
-            background: #0f1117;
-        }
-        .terminal-pane {
-            background: #111318;
-            border: 1px solid #252a33;
+        window {{
+            background: {window_background};
+        }}
+        .terminal-pane {{
+            background: {pane_background};
+            border: 1px solid {border};
             min-width: 220px;
             min-height: 150px;
-        }
-        .terminal-pane.focused {
-            border-color: #4cc9f0;
-        }
-        .pane-title {
-            background: #191d24;
-            color: #d8dee9;
+        }}
+        .terminal-pane.focused {{
+            border-color: {accent};
+        }}
+        .pane-title {{
+            background: {title_background};
+            color: {foreground};
             padding: 5px 8px;
             font-size: 12px;
-        }
-        paned > separator {
-            background: #252a33;
+        }}
+        paned > separator {{
+            background: {border};
             min-width: 5px;
             min-height: 5px;
-        }
+        }}
         ",
-    );
+    ));
 
     gtk::style_context_add_provider_for_display(
         &gdk::Display::default().expect("display is available"),
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
+}
+
+fn css_rgba(color: &str, alpha: f32) -> Option<String> {
+    let color = gdk::RGBA::parse(color).ok()?;
+    Some(format!(
+        "rgba({:.0}, {:.0}, {:.0}, {:.3})",
+        color.red() * 255.0,
+        color.green() * 255.0,
+        color.blue() * 255.0,
+        alpha.clamp(0.0, 1.0)
+    ))
 }

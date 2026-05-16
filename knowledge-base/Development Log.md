@@ -46,6 +46,15 @@
   still appear if the desktop/session sets GTK's unsupported
   `gtk-application-prefer-dark-theme` setting globally.
 
+## Branding And Theme Work
+
+- Added a Terminal Tiles logo in `assets/icons/hicolor` as SVG and 256px PNG.
+- Wired the app window and header bar to use the project icon.
+- Added Alacritty theme import from `~/.config/alacritty/alacritty.toml`.
+- Added terminal theme source modes: `alacritty`, `system`, and `custom`.
+- Added transparent VTE backgrounds using Alacritty `window.opacity` or the
+  app's `theme.background_opacity` setting.
+
 ## Known Local Environment Gap
 
 Full GUI checks are blocked until a package providing `vte-2.91-gtk4.pc` is

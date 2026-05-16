@@ -24,6 +24,36 @@ pane should own that session.
 - TOML settings at `~/.config/linux-cmd-dashboard/config.toml`
 - Missing settings fields fall back to built-in defaults, so new versions can
   add keys without breaking older config files.
+- Project logo and app icon under `assets/icons/hicolor`.
+- Terminal colors can follow Alacritty, the system theme, or custom settings.
+- Semi-transparent terminal backgrounds are supported when the compositor allows
+  alpha blending.
+
+## Theme Settings
+
+By default, terminals import `~/.config/alacritty/alacritty.toml`, including
+`colors.primary`, cyan accent colors, `window.opacity`, and dark/light window
+preference.
+
+```toml
+[theme]
+source = "alacritty" # "alacritty", "system", or "custom"
+transparent_background = true
+background_opacity = 0.8
+```
+
+To use custom colors instead:
+
+```toml
+[theme]
+source = "custom"
+foreground = "#d8dee9"
+background = "#111318"
+cursor = "#f2f4f8"
+accent = "#4cc9f0"
+transparent_background = true
+background_opacity = 0.82
+```
 
 ## Shortcuts
 

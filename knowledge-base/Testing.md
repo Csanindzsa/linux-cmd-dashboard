@@ -14,6 +14,7 @@ cargo check
 - Core layout/config tests pass.
 - Core tests now cover nested split-ratio persistence.
 - Config tests cover fallback defaults for missing settings fields.
+- Config tests cover parsing Alacritty TOML colors and opacity.
 - Full GUI `cargo check` works after installing `vte4`.
 
 ## Manual Acceptance Targets

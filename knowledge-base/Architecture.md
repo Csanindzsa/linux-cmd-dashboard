@@ -26,3 +26,20 @@ lookup.
 Each pane owns a VTE terminal widget. New panes spawn the configured shell,
 defaulting to `fish`, through VTE's pseudo-terminal support. When possible, new
 panes inherit the focused terminal's current directory.
+
+## Theme Runtime
+
+The default terminal theme source is Alacritty. The app reads
+`~/.config/alacritty/alacritty.toml` when present and imports primary
+foreground/background colors, a cyan accent, opacity, and dark/light preference.
+VTE panes use clear backgrounds plus RGBA terminal colors for compositor-backed
+transparency.
+
+The app can also use a coarse system-theme palette or explicit custom colors
+from `~/.config/linux-cmd-dashboard/config.toml`.
+
+## Branding
+
+The project icon lives under `assets/icons/hicolor` in scalable SVG and 256px
+PNG forms. During development, the app adds `assets/icons` to GTK's icon search
+path and uses `dev.codex.LinuxCmdDashboard` as its icon name.
