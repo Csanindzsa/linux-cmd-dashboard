@@ -36,6 +36,13 @@
 - Cleaned up full-build warnings from deprecated CSS loading, unused mutability,
   and unread pane metadata fields.
 
+## Runtime Debugging
+
+- Fixed a startup panic caused by holding a `RefCell` borrow while GTK emitted a
+  focus-enter signal from `grab_focus()`.
+- Made terminal signal handlers avoid panicking on re-entrant GTK callbacks by
+  using `try_borrow_mut()`.
+
 ## Known Local Environment Gap
 
 Full GUI checks are blocked until a package providing `vte-2.91-gtk4.pc` is

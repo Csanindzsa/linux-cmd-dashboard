@@ -337,8 +337,13 @@ fn render(state: &Rc<RefCell<UiState>>) {
 
     content.append(&widget);
     widget.grab_focus();
-    if let Some(pane) = state.borrow().panes.get(&focused) {
-        pane.terminal.grab_focus();
+    let focused_terminal = state
+        .borrow()
+        .panes
+        .get(&focused)
+        .map(|pane| pane.terminal.clone());
+    if let Some(terminal) = focused_terminal {
+        terminal.grab_focus();
     }
 }
 
@@ -497,7 +502,9 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
     {
         let state = state.clone();
         focus_controller.connect_enter(move |_| {
-            state.borrow_mut().workspace.focus(id);
+            if let Ok(mut state) = state.try_borrow_mut() {
+                state.workspace.focus(id);
+            }
         });
     }
     terminal.add_controller(focus_controller);
@@ -506,7 +513,10 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
         let state = state.clone();
         terminal.connect_window_title_changed(move |terminal| {
             if let Some(title) = terminal.window_title() {
-                if let Some(pane) = state.borrow_mut().panes.get_mut(&id) {
+                let Ok(mut state) = state.try_borrow_mut() else {
+                    return;
+                };
+                if let Some(pane) = state.panes.get_mut(&id) {
                     pane.title = title.to_string();
                 }
             }
@@ -516,8 +526,13 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
     {
         let state = state.clone();
         terminal.connect_child_exited(move |_, status| {
-            if let Some(pane) = state.borrow_mut().panes.get_mut(&id) {
-                pane.status = PaneStatus::Exited(status);
+            {
+                let Ok(mut state_ref) = state.try_borrow_mut() else {
+                    return;
+                };
+                if let Some(pane) = state_ref.panes.get_mut(&id) {
+                    pane.status = PaneStatus::Exited(status);
+                }
             }
             render(&state);
         });
