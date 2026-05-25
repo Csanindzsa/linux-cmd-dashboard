@@ -37,9 +37,20 @@ preference.
 
 ```toml
 [theme]
-source = "alacritty" # "alacritty", "system", or "custom"
+source = "alacritty" # "alacritty", "kitty", "system", or "custom"
 transparent_background = true
-background_opacity = 0.8
+background_opacity = 0.7
+```
+
+To use a Kitty theme, set `source = "kitty"` and point `kitty_config` to a theme
+source. The value can be a full path, a file under
+`~/.config/kitty/themes/<name>.conf`, or a Kitty built-in theme name supported by
+`kitty +kitten themes --dump-theme <name>`.
+
+```toml
+[theme]
+source = "kitty"
+kitty_config = "Dark+"
 ```
 
 To use custom colors instead:

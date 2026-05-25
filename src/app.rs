@@ -107,6 +107,7 @@ fn build_ui(app: &adw::Application) {
     }));
 
     connect_pane_signals(&state, first_id);
+    install_window_clipboard_shortcuts(&window, &state);
     install_actions(app, &state);
 
     {
@@ -552,21 +553,108 @@ fn connect_pane_signals(state: &Rc<RefCell<UiState>>, id: PaneId) {
     }
 }
 
+fn install_window_clipboard_shortcuts(
+    window: &adw::ApplicationWindow,
+    state: &Rc<RefCell<UiState>>,
+) {
+    let key_controller = gtk::EventControllerKey::new();
+    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
+    {
+        let state = state.clone();
+        key_controller.connect_key_pressed(move |_, key, _, modifiers| {
+            if !modifiers.contains(gdk::ModifierType::CONTROL_MASK) {
+                return glib::Propagation::Proceed;
+            }
+
+            match key {
+                gdk::Key::c | gdk::Key::C => {
+                    let state_ref = state.borrow();
+                    let focused = state_ref.workspace.focused();
+                    let selected_terminal = state_ref
+                        .panes
+                        .get(&focused)
+                        .filter(|pane| pane.terminal.has_selection())
+                        .or_else(|| {
+                            state_ref
+                                .panes
+                                .values()
+                                .find(|pane| pane.terminal.has_selection())
+                        })
+                        .map(|pane| pane.terminal.clone());
+                    drop(state_ref);
+
+                    if let Some(terminal) = selected_terminal {
+                        terminal.copy_clipboard_format(vte::Format::Text);
+                        glib::Propagation::Stop
+                    } else {
+                        glib::Propagation::Proceed
+                    }
+                }
+                gdk::Key::v | gdk::Key::V => {
+                    let terminal = {
+                        let state_ref = state.borrow();
+                        state_ref
+                            .panes
+                            .get(&state_ref.workspace.focused())
+                            .map(|pane| pane.terminal.clone())
+                    };
+
+                    if let Some(terminal) = terminal {
+                        terminal.paste_clipboard();
+                        glib::Propagation::Stop
+                    } else {
+                        glib::Propagation::Proceed
+                    }
+                }
+                _ => glib::Propagation::Proceed,
+            }
+        });
+    }
+    window.add_controller(key_controller);
+}
+
 fn apply_terminal_theme(terminal: &vte::Terminal, theme: &EffectiveTheme) {
     terminal.set_clear_background(theme.transparent_background);
-    if let Ok(color) = gdk::RGBA::parse(&theme.foreground) {
-        terminal.set_color_foreground(&color);
+    terminal.set_bold_is_bright(false);
+
+    let foreground = gdk::RGBA::parse(&theme.foreground).ok();
+    let background = gdk::RGBA::parse(&theme.background).ok();
+    let terminal_colors = parse_ansi_palette(theme);
+
+    match (foreground, background) {
+        (Some(foreground), Some(background)) => {
+            if let Some(colors) = terminal_colors {
+                let colors = colors.iter().collect::<Vec<_>>();
+                terminal.set_colors(Some(&foreground), Some(&background), &colors);
+            } else {
+                terminal.set_color_foreground(&foreground);
+                terminal.set_color_background(&background);
+            }
+        }
+        (Some(foreground), None) => terminal.set_color_foreground(&foreground),
+        (None, Some(background)) => terminal.set_color_background(&background),
+        (None, None) => {}
     }
-    if let Ok(color) = gdk::RGBA::parse(&theme.background) {
-        let color = color.with_alpha(if theme.transparent_background {
-            theme.background_opacity
-        } else {
-            1.0
-        });
-        terminal.set_color_background(&color);
-    }
+
     if let Ok(color) = gdk::RGBA::parse(&theme.cursor) {
         terminal.set_color_cursor(Some(&color));
+    }
+}
+
+fn parse_ansi_palette(theme: &EffectiveTheme) -> Option<Vec<gdk::RGBA>> {
+    if theme.ansi_colors.is_empty() {
+        return None;
+    }
+
+    let mut colors = Vec::with_capacity(theme.ansi_colors.len());
+    for color in &theme.ansi_colors {
+        colors.push(gdk::RGBA::parse(color).ok()?);
+    }
+
+    if colors.len() == theme.ansi_colors.len() {
+        Some(colors)
+    } else {
+        None
     }
 }
 
@@ -610,10 +698,16 @@ fn install_icon_theme() {
 
 fn install_css(theme: &EffectiveTheme) {
     let provider = gtk::CssProvider::new();
-    let window_background = css_rgba(&theme.background, theme.background_opacity * 0.72)
+    let terminal_alpha = terminal_background_opacity(theme);
+    let effective_alpha = if theme.transparent_background {
+        terminal_alpha
+    } else {
+        1.0
+    };
+    let window_background = css_rgba(&theme.background, terminal_alpha)
         .unwrap_or_else(|| "rgba(15, 17, 23, 0.78)".to_string());
-    let pane_background = css_rgba(&theme.background, theme.background_opacity)
-        .unwrap_or_else(|| "rgba(17, 19, 24, 0.8)".to_string());
+    let pane_background =
+        css_rgba(&theme.background, effective_alpha).unwrap_or_else(|| theme.background.clone());
     let title_background =
         css_rgba(&theme.titlebar_background, 1.0).unwrap_or_else(|| "#202326".to_string());
     let border = css_rgba(&theme.foreground, 0.18).unwrap_or_else(|| "#252a33".to_string());
@@ -652,6 +746,10 @@ fn install_css(theme: &EffectiveTheme) {
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
+}
+
+fn terminal_background_opacity(theme: &EffectiveTheme) -> f32 {
+    theme.background_opacity.clamp(0.1, 1.0)
 }
 
 fn css_rgba(color: &str, alpha: f32) -> Option<String> {
