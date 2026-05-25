@@ -4,7 +4,14 @@ use crate::{
 };
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
-use std::{cell::RefCell, collections::HashMap, env, path::PathBuf, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    env, fs,
+    path::{Path, PathBuf},
+    rc::Rc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use vte::prelude::*;
 
 const APP_ID: &str = "dev.codex.LinuxCmdDashboard";
@@ -604,7 +611,7 @@ fn install_window_clipboard_shortcuts(
                     };
 
                     if let Some(terminal) = terminal {
-                        terminal.paste_clipboard();
+                        paste_clipboard_into_terminal(&terminal);
                         glib::Propagation::Stop
                     } else {
                         glib::Propagation::Proceed
@@ -615,6 +622,76 @@ fn install_window_clipboard_shortcuts(
         });
     }
     window.add_controller(key_controller);
+}
+
+fn paste_clipboard_into_terminal(terminal: &vte::Terminal) {
+    let Some(display) = gdk::Display::default() else {
+        terminal.paste_clipboard();
+        return;
+    };
+
+    let clipboard = display.clipboard();
+    let formats = clipboard.formats();
+    let mime_types = formats.mime_types();
+    let has_plain_text = mime_types.iter().any(|mime| {
+        matches!(
+            mime.as_str(),
+            "text/plain" | "text/plain;charset=utf-8" | "UTF8_STRING" | "STRING"
+        )
+    });
+    let has_image = formats
+        .contains_type(gdk::Texture::static_type())
+        || mime_types
+        .iter()
+        .any(|mime| mime.as_str().starts_with("image/"));
+
+    if has_plain_text || !has_image {
+        terminal.paste_clipboard();
+        return;
+    }
+
+    let terminal = terminal.clone();
+    clipboard.read_texture_async(gio::Cancellable::NONE, move |result| {
+        let Ok(Some(texture)) = result else {
+            return;
+        };
+
+        match save_clipboard_texture(&texture) {
+            Ok(path) => terminal.paste_text(&shell_quote_path(&path)),
+            Err(error) => eprintln!("failed to paste clipboard image: {error}"),
+        }
+    });
+}
+
+fn save_clipboard_texture(texture: &gdk::Texture) -> anyhow::Result<PathBuf> {
+    let directory = dirs::cache_dir()
+        .unwrap_or_else(env::temp_dir)
+        .join("linux-cmd-dashboard")
+        .join("clipboard");
+    fs::create_dir_all(&directory)?;
+
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+    let path = directory.join(format!("clipboard-image-{timestamp}.png"));
+    texture.save_to_png(&path)?;
+    Ok(path)
+}
+
+fn shell_quote_path(path: &Path) -> String {
+    let text = path.to_string_lossy();
+    format!("'{}'", text.replace('\'', "'\\''"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shell_quote_path_handles_spaces_and_quotes() {
+        assert_eq!(
+            shell_quote_path(Path::new("/tmp/codex image's.png")),
+            "'/tmp/codex image'\\''s.png'"
+        );
+    }
 }
 
 fn apply_terminal_theme(terminal: &vte::Terminal, theme: &EffectiveTheme) {
