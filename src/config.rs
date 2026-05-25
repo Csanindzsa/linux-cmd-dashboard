@@ -242,9 +242,7 @@ impl Theme {
 fn apply_imported_theme_opacity(theme: &mut EffectiveTheme, source: &Theme) {
     let configured_opacity = source.background_opacity.clamp(0.1, 1.0);
     if source.transparent_background {
-        if theme.background_opacity >= 1.0 {
-            theme.background_opacity = configured_opacity;
-        }
+        theme.background_opacity = configured_opacity;
         theme.transparent_background = true;
     } else {
         theme.transparent_background = false;

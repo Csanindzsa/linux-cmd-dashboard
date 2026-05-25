@@ -62,7 +62,9 @@ fn build_ui(app: &adw::Application) {
         .build();
 
     let toolbar = adw::ToolbarView::new();
+    toolbar.add_css_class("terminal-toolbar");
     let header = adw::HeaderBar::new();
+    header.add_css_class("terminal-titlebar");
     let title_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     let logo = gtk::Image::from_icon_name(APP_ID);
     logo.set_pixel_size(22);
@@ -89,6 +91,7 @@ fn build_ui(app: &adw::Application) {
     toolbar.add_top_bar(&header);
 
     let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    content.add_css_class("terminal-content");
     toolbar.set_content(Some(&content));
     window.set_content(Some(&toolbar));
 
@@ -470,6 +473,7 @@ fn create_pane(id: PaneId, cwd: PathBuf, config: &TerminalConfig, theme: &Effect
     terminal.set_font(Some(&gtk::pango::FontDescription::from_string(
         &config.font,
     )));
+    terminal.add_css_class("terminal-view");
     apply_terminal_theme(&terminal, theme);
     terminal.set_hexpand(true);
     terminal.set_vexpand(true);
@@ -614,31 +618,64 @@ fn install_window_clipboard_shortcuts(
 }
 
 fn apply_terminal_theme(terminal: &vte::Terminal, theme: &EffectiveTheme) {
-    terminal.set_clear_background(theme.transparent_background);
+    terminal.set_clear_background(!theme.transparent_background);
     terminal.set_bold_is_bright(false);
 
     let foreground = gdk::RGBA::parse(&theme.foreground).ok();
-    let background = gdk::RGBA::parse(&theme.background).ok();
+    let background = terminal_background_color(theme).and_then(|mut color| {
+        color.set_alpha(terminal_background_alpha(theme) as f32);
+        Some(color)
+    });
     let terminal_colors = parse_ansi_palette(theme);
 
-    match (foreground, background) {
-        (Some(foreground), Some(background)) => {
-            if let Some(colors) = terminal_colors {
-                let colors = colors.iter().collect::<Vec<_>>();
-                terminal.set_colors(Some(&foreground), Some(&background), &colors);
-            } else {
-                terminal.set_color_foreground(&foreground);
-                terminal.set_color_background(&background);
-            }
+    match (foreground, terminal_colors) {
+        (Some(foreground), Some(colors)) => {
+            let colors = colors.iter().collect::<Vec<_>>();
+            terminal.set_colors(Some(&foreground), background.as_ref(), &colors);
         }
         (Some(foreground), None) => terminal.set_color_foreground(&foreground),
-        (None, Some(background)) => terminal.set_color_background(&background),
-        (None, None) => {}
+        (None, Some(colors)) => {
+            let colors = colors.iter().collect::<Vec<_>>();
+            terminal.set_colors(None, background.as_ref(), &colors);
+        }
+        (None, None) => {
+            if let Some(background) = background.as_ref() {
+                terminal.set_color_background(background);
+            }
+        }
     }
 
     if let Ok(color) = gdk::RGBA::parse(&theme.cursor) {
         terminal.set_color_cursor(Some(&color));
     }
+
+    if let Some(background) = background {
+        terminal.set_color_background(&background);
+    }
+}
+
+fn terminal_background_alpha(theme: &EffectiveTheme) -> f64 {
+    if theme.transparent_background {
+        f64::from(terminal_background_opacity(theme))
+    } else {
+        1.0
+    }
+}
+
+fn terminal_background_rgba(theme: &EffectiveTheme) -> Option<String> {
+    let color = gdk::RGBA::parse(&theme.background).ok()?;
+    Some(format!(
+        "rgba({:.0}, {:.0}, {:.0}, {:.3})",
+        color.red() * 255.0,
+        color.green() * 255.0,
+        color.blue() * 255.0,
+        terminal_background_alpha(theme)
+    ))
+}
+
+fn terminal_background_color(theme: &EffectiveTheme) -> Option<gdk::RGBA> {
+    let color = gdk::RGBA::parse(&theme.background).ok()?;
+    Some(color)
 }
 
 fn parse_ansi_palette(theme: &EffectiveTheme) -> Option<Vec<gdk::RGBA>> {
@@ -698,31 +735,35 @@ fn install_icon_theme() {
 
 fn install_css(theme: &EffectiveTheme) {
     let provider = gtk::CssProvider::new();
-    let terminal_alpha = terminal_background_opacity(theme);
-    let effective_alpha = if theme.transparent_background {
-        terminal_alpha
-    } else {
-        1.0
-    };
-    let window_background = css_rgba(&theme.background, terminal_alpha)
-        .unwrap_or_else(|| "rgba(15, 17, 23, 0.78)".to_string());
-    let pane_background =
-        css_rgba(&theme.background, effective_alpha).unwrap_or_else(|| theme.background.clone());
     let title_background =
         css_rgba(&theme.titlebar_background, 1.0).unwrap_or_else(|| "#202326".to_string());
+    let terminal_background =
+        terminal_background_rgba(theme).unwrap_or_else(|| theme.background.clone());
     let border = css_rgba(&theme.foreground, 0.18).unwrap_or_else(|| "#252a33".to_string());
     let foreground = &theme.foreground;
     let accent = &theme.accent;
     provider.load_from_string(&format!(
         "
         window {{
-            background: {window_background};
+            background: transparent;
+        }}
+        .terminal-toolbar,
+        .terminal-toolbar > *,
+        .terminal-content {{
+            background: transparent;
+        }}
+        .terminal-titlebar {{
+            background: {title_background};
+            border-bottom: 1px solid {border};
         }}
         .terminal-pane {{
-            background: {pane_background};
+            background: transparent;
             border: 1px solid {border};
             min-width: 220px;
             min-height: 150px;
+        }}
+        .terminal-view {{
+            background: {terminal_background};
         }}
         .terminal-pane.focused {{
             border-color: {accent};
