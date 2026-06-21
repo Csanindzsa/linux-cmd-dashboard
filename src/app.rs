@@ -639,11 +639,10 @@ fn paste_clipboard_into_terminal(terminal: &vte::Terminal) {
             "text/plain" | "text/plain;charset=utf-8" | "UTF8_STRING" | "STRING"
         )
     });
-    let has_image = formats
-        .contains_type(gdk::Texture::static_type())
+    let has_image = formats.contains_type(gdk::Texture::static_type())
         || mime_types
-        .iter()
-        .any(|mime| mime.as_str().starts_with("image/"));
+            .iter()
+            .any(|mime| mime.as_str().starts_with("image/"));
 
     if has_plain_text || !has_image {
         terminal.paste_clipboard();

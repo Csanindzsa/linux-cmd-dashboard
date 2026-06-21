@@ -2,4 +2,10 @@
 /.idea
 /.vscode
 *.swp
+/Cargo.toml.orig
+/.agents
+/.codex
+/.code-review-graph
+/.opencode
+/.swarm
 /knowledge-base/.obsidian

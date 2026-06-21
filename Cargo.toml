@@ -2,8 +2,11 @@
 name = "linux-cmd-dashboard"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license-file = "LICENSE.md"
 description = "Single-window tiling terminal manager for Linux"
+readme = "README.md"
+repository = "https://github.com/Csanindzsa/linux-cmd-dashboard"
+keywords = ["terminal", "gtk", "vte", "tiling", "linux"]
 
 [dependencies]
 anyhow = "1"
