@@ -81,7 +81,7 @@ fi
 
 if [[ "$PACKAGE_APPIMAGE" == "1" ]]; then
   if command -v "$LINUXDEPLOY" >/dev/null 2>&1; then
-    linuxdeploy_path="$(command -v "$LINUXDEPLOY")"
+    linuxdeploy_path="$(realpath "$(command -v "$LINUXDEPLOY")")"
   elif [[ -x "$LINUXDEPLOY" ]]; then
     linuxdeploy_path="$(realpath "$LINUXDEPLOY")"
   else
