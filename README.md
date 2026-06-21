@@ -73,6 +73,18 @@ install -Dm644 assets/icons/hicolor/scalable/apps/dev.codex.LinuxCmdDashboard.sv
 gtk-update-icon-cache ~/.local/share/icons/hicolor
 ```
 
+## Releases
+
+GitHub releases provide prebuilt Linux x86_64 downloads:
+
+- `.AppImage` for a portable, no-install launch path.
+- `.deb` for Debian/Ubuntu-style systems.
+- `.tar.gz` for manual installs on other distributions.
+- `SHA256SUMS` for verifying downloads.
+
+The release workflow is defined in `.github/workflows/release.yml`, and the
+packaging script lives at `scripts/package-linux.sh`.
+
 ## Configuration
 
 The app creates `~/.config/linux-cmd-dashboard/config.toml` on first launch.

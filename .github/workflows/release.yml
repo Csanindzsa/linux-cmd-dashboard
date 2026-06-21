@@ -1,0 +1,88 @@
+name: Release packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to package, without the leading v
+        required: false
+        default: "0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  linux-x86-64:
+    name: Linux x86_64 packages
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            curl \
+            desktop-file-utils \
+            file \
+            fish \
+            libadwaita-1-dev \
+            libgtk-4-dev \
+            libvte-2.91-gtk4-dev \
+            patchelf \
+            pkg-config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Validate desktop entry
+        run: desktop-file-validate linux-cmd-dashboard.desktop
+
+      - name: Run checks
+        run: |
+          cargo fmt --all -- --check
+          cargo test --no-default-features --lib
+          cargo check --no-default-features
+          cargo check
+
+      - name: Download linuxdeploy
+        run: |
+          mkdir -p .tools
+          curl -L \
+            -o .tools/linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x .tools/linuxdeploy-x86_64.AppImage
+
+      - name: Build packages
+        env:
+          LINUXDEPLOY: .tools/linuxdeploy-x86_64.AppImage
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+
+          VERSION="${VERSION#v}" ./scripts/package-linux.sh
+          sha256sum dist/linux-cmd-dashboard-* > dist/SHA256SUMS
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-cmd-dashboard-linux-x86_64
+          path: |
+            dist/linux-cmd-dashboard-*
+            dist/SHA256SUMS
+
+      - name: Upload release assets
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/linux-cmd-dashboard-* dist/SHA256SUMS --clobber
