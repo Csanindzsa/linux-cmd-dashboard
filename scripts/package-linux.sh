@@ -24,6 +24,7 @@ fi
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
+install -Dm755 "scripts/install-linux.sh" "$DIST_DIR/install-linux.sh"
 
 cargo build --release
 

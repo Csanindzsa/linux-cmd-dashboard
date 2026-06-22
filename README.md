@@ -10,9 +10,9 @@ manually inside whichever pane should own that session.
 ## Project Status
 
 This is an early hobby project. It is usable for local terminal workflows, but
-it is not packaged for distributions yet and has only been developed against a
-modern Linux desktop with GTK4, libadwaita, VTE GTK4, and a compositor that can
-blend transparent terminal backgrounds.
+it has only been developed against a modern Linux desktop with GTK4,
+libadwaita, VTE GTK4, and a compositor that can blend transparent terminal
+backgrounds.
 
 ## Features
 
@@ -35,10 +35,55 @@ blend transparent terminal backgrounds.
 - Image-only clipboard paste saves the image to a cache file and pastes the
   quoted file path into the focused terminal.
 
+## Install
+
+The easiest install path is the user-local installer. It downloads the latest
+GitHub AppImage release, verifies `SHA256SUMS`, extracts the bundled app so FUSE
+is not required at runtime, and installs:
+
+- `~/.local/bin/linux-cmd-dashboard`
+- `~/.local/opt/linux-cmd-dashboard`
+- `~/.local/share/applications/linux-cmd-dashboard.desktop`
+- icons under `~/.local/share/icons/hicolor`
+
+From a checkout:
+
+```sh
+./scripts/install-linux.sh
+```
+
+Or from the latest release:
+
+```sh
+curl -L -o install-linux.sh \
+  https://github.com/Csanindzsa/linux-cmd-dashboard/releases/latest/download/install-linux.sh
+chmod +x install-linux.sh
+./install-linux.sh
+```
+
+Launch from the desktop menu as **Linux Command Dashboard**, or run:
+
+```sh
+~/.local/bin/linux-cmd-dashboard
+```
+
+To install a specific release:
+
+```sh
+./scripts/install-linux.sh --version 0.1.0
+```
+
+To remove the user-local install:
+
+```sh
+./scripts/install-linux.sh --uninstall
+```
+
 ## Install From Source
 
-Install the Rust toolchain plus GTK4, libadwaita, VTE GTK4, pkg-config, and
-`fish`. The VTE package must provide `vte-2.91-gtk4.pc`.
+Source installs are useful for development. Install the Rust toolchain plus
+GTK4, libadwaita, VTE GTK4, pkg-config, and `fish`. The VTE package must provide
+`vte-2.91-gtk4.pc`.
 
 Examples:
 
@@ -56,16 +101,16 @@ Then run:
 cargo run
 ```
 
-To build a local binary:
+To build and install a native local binary:
+
+```sh
+./scripts/install-linux.sh --from-source
+```
+
+Manual install commands are still available if you want to control every file:
 
 ```sh
 cargo build --release
-```
-
-The included desktop entry expects `linux-cmd-dashboard` to be available on
-`PATH`:
-
-```sh
 install -Dm755 target/release/linux-cmd-dashboard ~/.local/bin/linux-cmd-dashboard
 install -Dm644 linux-cmd-dashboard.desktop ~/.local/share/applications/linux-cmd-dashboard.desktop
 install -Dm644 assets/icons/hicolor/scalable/apps/dev.codex.LinuxCmdDashboard.svg \
@@ -77,6 +122,7 @@ gtk-update-icon-cache ~/.local/share/icons/hicolor
 
 GitHub releases provide prebuilt Linux x86_64 downloads:
 
+- `install-linux.sh` for a user-local install that does not require root.
 - `.AppImage` for a portable, no-install launch path.
 - `.deb` for Debian/Ubuntu-style systems.
 - `.tar.gz` for manual installs on other distributions.
@@ -153,6 +199,7 @@ Useful checks before sending changes:
 
 ```sh
 cargo fmt --all
+bash -n scripts/install-linux.sh
 cargo test --no-default-features --lib
 cargo check --no-default-features
 cargo check

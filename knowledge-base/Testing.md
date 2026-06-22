@@ -4,6 +4,7 @@
 
 ```sh
 cargo fmt --all
+bash -n scripts/install-linux.sh
 cargo test --no-default-features --lib
 cargo check --no-default-features
 cargo check
@@ -15,6 +16,7 @@ cargo check
 - Core tests now cover nested split-ratio persistence.
 - Config tests cover fallback defaults for missing settings fields.
 - Config tests cover parsing Alacritty TOML colors and opacity.
+- Installer syntax is checked with `bash -n scripts/install-linux.sh`.
 - Full GUI `cargo check` works after installing `vte4`.
 
 ## Manual Acceptance Targets

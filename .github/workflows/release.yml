@@ -48,6 +48,7 @@ jobs:
       - name: Run checks
         run: |
           cargo fmt --all -- --check
+          bash -n scripts/install-linux.sh
           cargo test --no-default-features --lib
           cargo check --no-default-features
           cargo check
@@ -71,13 +72,14 @@ jobs:
           fi
 
           VERSION="${VERSION#v}" ./scripts/package-linux.sh
-          sha256sum dist/linux-cmd-dashboard-* dist/linux-cmd-dashboard_*.deb > dist/SHA256SUMS
+          sha256sum dist/install-linux.sh dist/linux-cmd-dashboard-* dist/linux-cmd-dashboard_*.deb > dist/SHA256SUMS
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-cmd-dashboard-linux-x86_64
           path: |
+            dist/install-linux.sh
             dist/linux-cmd-dashboard-*
             dist/linux-cmd-dashboard_*.deb
             dist/SHA256SUMS
@@ -86,4 +88,4 @@ jobs:
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" dist/linux-cmd-dashboard-* dist/linux-cmd-dashboard_*.deb dist/SHA256SUMS --clobber
+        run: gh release upload "$GITHUB_REF_NAME" dist/install-linux.sh dist/linux-cmd-dashboard-* dist/linux-cmd-dashboard_*.deb dist/SHA256SUMS --clobber
