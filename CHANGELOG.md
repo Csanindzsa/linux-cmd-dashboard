@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.2 - 2026-06-22
+
+### Fixed
+
+- Remove `LD_LIBRARY_PATH` from the extracted-AppImage launcher wrapper. The
+  packaged binary already has `RUNPATH=$ORIGIN/../lib`, so it can load bundled
+  GTK/VTE libraries without exporting bundled library paths into the app
+  environment.
+- Prevent stale or inherited AppImage runtime variables from affecting the
+  dashboard when launched from an already-polluted shell.
+
 ## v0.1.1 - 2026-06-22
 
 ### Fixed

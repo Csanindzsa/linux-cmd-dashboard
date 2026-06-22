@@ -70,7 +70,7 @@ Launch from the desktop menu as **Linux Command Dashboard**, or run:
 To install a specific release:
 
 ```sh
-./scripts/install-linux.sh --version 0.1.1
+./scripts/install-linux.sh --version 0.1.2
 ```
 
 To remove the user-local install:

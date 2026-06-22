@@ -50,9 +50,10 @@ The preferred user install path is `scripts/install-linux.sh`. By default it
 downloads the latest GitHub AppImage release, verifies the published checksum,
 extracts the AppImage payload, and installs the extracted bundle under
 `~/.local/opt/linux-cmd-dashboard`. The wrapper at
-`~/.local/bin/linux-cmd-dashboard` sets `LD_LIBRARY_PATH` and `XDG_DATA_DIRS`
-for the bundled libraries and assets, so the install works even on systems
-without AppImage FUSE support.
+`~/.local/bin/linux-cmd-dashboard` runs the extracted binary directly. The
+binary produced by linuxdeploy has `RUNPATH=$ORIGIN/../lib`, so it can find the
+bundled GTK/VTE libraries without exporting `LD_LIBRARY_PATH` into the app
+environment.
 
 The same script can build and install a native source binary with
 `--from-source` when GTK4, libadwaita, VTE GTK4, pkg-config, fish, and Cargo are

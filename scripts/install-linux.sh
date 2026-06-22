@@ -127,11 +127,9 @@ install_wrapper_for_appdir() {
   install -d "$BIN_DIR"
   cat >"$BIN_DIR/$APP_NAME" <<WRAPPER
 #!/usr/bin/env sh
-APPDIR="$APP_DIR"
-export APPDIR
-export LD_LIBRARY_PATH="\$APPDIR/usr/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
-export XDG_DATA_DIRS="\$APPDIR/usr/share\${XDG_DATA_DIRS:+:\$XDG_DATA_DIRS}"
-exec "\$APPDIR/usr/bin/$APP_NAME" "\$@"
+APPDIR_VALUE="$APP_DIR"
+unset APPDIR APPIMAGE ARGV0 OWD LD_LIBRARY_PATH
+exec "\$APPDIR_VALUE/usr/bin/$APP_NAME" "\$@"
 WRAPPER
   chmod 755 "$BIN_DIR/$APP_NAME"
 }
