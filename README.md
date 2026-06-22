@@ -70,7 +70,7 @@ Launch from the desktop menu as **Linux Command Dashboard**, or run:
 To install a specific release:
 
 ```sh
-./scripts/install-linux.sh --version 0.1.0
+./scripts/install-linux.sh --version 0.1.1
 ```
 
 To remove the user-local install:
@@ -130,6 +130,7 @@ GitHub releases provide prebuilt Linux x86_64 downloads:
 
 The release workflow is defined in `.github/workflows/release.yml`, and the
 packaging script lives at `scripts/package-linux.sh`.
+Release notes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration
 
