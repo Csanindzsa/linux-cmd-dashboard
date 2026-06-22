@@ -57,3 +57,8 @@ without AppImage FUSE support.
 The same script can build and install a native source binary with
 `--from-source` when GTK4, libadwaita, VTE GTK4, pkg-config, fish, and Cargo are
 available.
+
+Terminal child processes receive an explicit sanitized environment. This strips
+the extracted AppImage `LD_LIBRARY_PATH`, `XDG_DATA_DIRS`, and wrapper-only
+variables before spawning the configured shell, so commands inside panes use the
+host system libraries instead of the bundled GTK/VTE runtime.

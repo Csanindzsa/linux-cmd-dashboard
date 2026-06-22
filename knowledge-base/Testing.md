@@ -16,6 +16,8 @@ cargo check
 - Core tests now cover nested split-ratio persistence.
 - Config tests cover fallback defaults for missing settings fields.
 - Config tests cover parsing Alacritty TOML colors and opacity.
+- Runtime environment tests cover stripping extracted AppImage variables from
+  spawned terminal shells.
 - Installer syntax is checked with `bash -n scripts/install-linux.sh`.
 - Full GUI `cargo check` works after installing `vte4`.
 

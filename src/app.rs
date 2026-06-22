@@ -1,6 +1,7 @@
 use crate::{
     config::{EffectiveTheme, TerminalConfig},
     layout::{Direction, LayoutTree, PaneId, SplitOrientation, Workspace},
+    runtime_env,
 };
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
@@ -487,11 +488,13 @@ fn create_pane(id: PaneId, cwd: PathBuf, config: &TerminalConfig, theme: &Effect
 
     let cwd_string = cwd.to_string_lossy().into_owned();
     let argv = [config.shell.as_str()];
+    let envv = runtime_env::terminal_environment();
+    let envv = envv.iter().map(String::as_str).collect::<Vec<_>>();
     terminal.spawn_async(
         vte::PtyFlags::DEFAULT,
         Some(&cwd_string),
         &argv,
-        &[],
+        &envv,
         glib::SpawnFlags::SEARCH_PATH,
         || {},
         -1,
