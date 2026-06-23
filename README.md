@@ -14,6 +14,18 @@ it has only been developed against a modern Linux desktop with GTK4,
 libadwaita, VTE GTK4, and a compositor that can blend transparent terminal
 backgrounds.
 
+## Screenshots
+
+![Single terminal pane with a transparent background](images/one-terminal.png)
+
+| Two panes | Four panes |
+| --- | --- |
+| ![Two tiled terminal panes](images/split-in-two.png) | ![Four tiled terminal panes](images/split-in-four.png) |
+
+| Nine panes | Pane selector |
+| --- | --- |
+| ![Nine tiled terminal panes](images/split-in-nine.png) | ![Pane selector menu listing open terminals](images/pane-selector-menu.png) |
+
 ## Features
 
 - Single native window with recursive tiled terminal panes.
